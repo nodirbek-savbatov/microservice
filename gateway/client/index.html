@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat loyiha</title>
+
+    <!-- Font Awesome -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- MDB -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/8.0.0/mdb.min.css"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="/static/main.css" />
+
+    <script
+      src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+      integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- MDB -->
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/8.0.0/mdb.umd.min.js"
+    ></script>
+
+    <script>
+      const socket = io('http://localhost:3000');
+
+      socket.on('typing', (data) => {
+        const typingEl = document.querySelector('.typing-el');
+
+        typingEl.classList.remove('d-none');
+
+        typingEl.textContent = `${data.user} yozayapti...`;
+      });
+
+      socket.on('messages', (data) => {
+        const cardBodyEl = document.querySelector('.card-body');
+        cardBodyEl.innerHTML = '';
+
+        data.forEach((ms) => {
+          if (ms.type == 'joined') {
+            cardBodyEl.insertAdjacentHTML(
+              'beforeend',
+              `
+                <div class="divider d-flex align-items-center mb-4">
+                  <p class="text-center mx-3 mb-0" style="color: #a2aab7">
+                    ${ms.message}
+                  </p>
+                </div>`,
+            );
+          }
+
+          if (ms.type == 'message') {
+            if (localStorage.getItem('userId') != ms.userId) {
+              cardBodyEl.insertAdjacentHTML(
+                'beforeend',
+                `
+              <div class="d-flex flex-row justify-content-start">
+                  <img
+                    src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava6-bg.webp"
+                    alt="avatar 1"
+                    style="width: 45px; height: 100%"
+                  />
+                  <div>
+                    <p class="small p-2 ms-3 mb-1 rounded-3 bg-body-tertiary">
+                      ${ms.message}
+                    </p>
+                    <p class="small ms-3 mb-3 rounded-3 text-muted">${ms.createdAt} ${ms?.user?.name}</p>
+                  </div>
+                </div>`,
+              );
+            } else {
+              cardBodyEl.insertAdjacentHTML(
+                'beforeend',
+                `
+              <div class="d-flex flex-row justify-content-end mb-4 pt-1">
+                  <div>
+                    <p
+                      class="small p-2 me-3 mb-1 text-white rounded-3 bg-primary"
+                    >
+                      ${ms.message}
+                    </p>
+                    <p
+                      class="small ms-3 mb-3 rounded-3 text-end text-muted px-3"
+                    >
+                      ${ms.createdAt} ${ms?.user?.name}
+                    </p>
+                  </div>
+                </div>
+              `,
+              );
+            }
+          }
+        });
+      });
+
+      socket.on('joined', (data) => {
+        localStorage.setItem('userId', data.id);
+      });
+
+      function handleJoinForm(e, el) {
+        e.preventDefault();
+        const name = el.name.value;
+
+        localStorage.setItem('user', name);
+
+        if (!name) {
+          return alert('Please enter your name');
+        }
+
+        socket.emit('joined', { user: name });
+      }
+
+      function handleTyping(e) {
+        const text = e.value;
+        socket.emit('typing', { user: localStorage.getItem('user') });
+      }
+
+      function handleMessage(e, el) {
+        e.preventDefault();
+        const message = e.target.message.value;
+
+        if (!message) {
+          return;
+        }
+
+        socket.emit('messages', {
+          message: message,
+          userId: localStorage.getItem('userId'),
+        });
+
+        el.message.value = '';
+      }
+    </script>
+  </head>
+  <body>
+    <div class="row d-flex justify-content-center p-4">
+      <h2 class="text-center">Ismingizni kiriting</h2>
+      <form onsubmit="handleJoinForm(event,this)" class="w-50 d-flex gap-3 p-3">
+        <input
+          class="form-control"
+          type="text"
+          placeholder="Enter your name"
+          name="name"
+        />
+        <button type="submit" class="btn btn-secondary">Submit</button>
+      </form>
+    </div>
+    <section>
+      <div class="container py-5">
+        <div class="row d-flex justify-content-center">
+          <div class="col-md-10 col-lg-8 col-xl-6">
+            <div class="card" id="chat2">
+              <div
+                class="card-header d-flex justify-content-between align-items-center p-3"
+              >
+                <h5 class="mb-0">Chat</h5>
+                <!-- Kimdir yozayapti -->
+                <p
+                  class="typing-el py-1 px-3 m-0 bg-success text-white rounded-3 d-none"
+                >
+                  Kimdir yozayapti ...
+                </p>
+                <button
+                  type="button"
+                  data-mdb-button-init
+                  data-mdb-ripple-init
+                  class="btn btn-primary btn-sm"
+                  data-mdb-ripple-color="dark"
+                >
+                  Let's Chat App
+                </button>
+              </div>
+              <div
+                class="card-body p-3"
+                data-mdb-perfect-scrollbar-init
+                style="position: relative; height: 400px; overflow-y: scroll"
+              >
+                <!-- Boshqalar xabari -->
+                <div class="d-flex flex-row justify-content-start">
+                  <img
+                    src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava6-bg.webp"
+                    alt="avatar 1"
+                    style="width: 45px; height: 100%"
+                  />
+                  <div>
+                    <p class="small p-2 ms-3 mb-1 rounded-3 bg-body-tertiary">
+                      Hi, What are you doing tomorrow? Can we come up a bar?
+                    </p>
+                    <p class="small ms-3 mb-3 rounded-3 text-muted">
+                      23:58. Ismi
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Guruhga qo'shilish -->
+                <div class="divider d-flex align-items-center mb-4">
+                  <p class="text-center mx-3 mb-0" style="color: #a2aab7">
+                    Kimdir guruhga qo'shildi
+                  </p>
+                </div>
+
+                <!-- O'zimizning xabar -->
+                <div class="d-flex flex-row justify-content-end mb-4 pt-1">
+                  <div>
+                    <p
+                      class="small p-2 me-3 mb-1 text-white rounded-3 bg-primary"
+                    >
+                      Hiii, I'm good.How are you doing?
+                    </p>
+                    <p
+                      class="small ms-3 mb-3 rounded-3 text-end text-muted px-3"
+                    >
+                      23:58. ismi
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer mt-5 text-muted p-3">
+                <form
+                  class="d-flex justify-content-start align-items-center"
+                  onsubmit="handleMessage(event, this)"
+                >
+                  <img
+                    src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava3-bg.webp"
+                    alt="avatar 3"
+                    style="width: 40px; height: 100%"
+                  />
+                  <input
+                    type="text"
+                    class="form-control form-control-lg"
+                    onkeyup="handleTyping(this)"
+                    name="message"
+                    id="typingInput"
+                    placeholder="Type message"
+                  />
+                  <a class="ms-1 text-muted" href="#!"
+                    ><i class="fas fa-paperclip"></i
+                  ></a>
+                  <a class="ms-3 text-muted" href="#!"
+                    ><i class="fas fa-smile"></i
+                  ></a>
+                  <button type="submit" class="ms-3" href="#!">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Language {
+  id         String       @default(dbgenerated("GEN_RANDOM_UUID()")) @map("id") @db.Uuid
+  name       String       @map("name") @db.VarChar(64)
+  image      String?      @map("image") @db.VarChar()
+  code       String       @unique @map("code") @db.VarChar(2)
+  definitions Definition[]
+
+  @@id([id])
+  @@map("language")
+}
+
+enum TranslateType {
+  content @map("content")
+  error   @map("error")
+}
+
+model Translate {
+  id         String        @default(dbgenerated("GEN_RANDOM_UUID()")) @map("id") @db.Uuid
+  code       String        @unique @map("code") @db.VarChar()
+  type       TranslateType @default(content) @map("type")
+  definitions Definition[]
+
+  @@id([id])
+  @@map("translate")
+}
+
+model Definition {
+  id          String @default(dbgenerated("GEN_RANDOM_UUID()")) @map("id") @db.Uuid
+  value       String @map("value") @db.Text
+  languageId  String @db.Uuid @map("language_id")
+  translateId String @db.Uuid @map("translate_id")
+
+  language  Language  @relation(references: [id], fields: [languageId], onDelete: Cascade, onUpdate: NoAction)
+  translate Translate @relation(references: [id], fields: [translateId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([id])
+  @@map("definition")
+}
